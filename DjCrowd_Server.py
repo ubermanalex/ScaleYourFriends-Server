@@ -4,22 +4,17 @@ Created on 12.06.2013
 @author: Alex
 '''
 
-'''
-PYSENDTOGGLE
-einkommentieren fuer pyclient tests
-auskommentieren fuer handyapp tests
-'''
-
 import sys,thread
 import time
 from libavg import *
-#import listnode
 import databases
 from twisted.internet import reactor
 from twisted.python import log
 from autobahn.websocket import WebSocketServerFactory, \
                                WebSocketServerProtocol, \
                                listenWS
+
+
 global clicked
 clicked = False
 global hostip, pysend, pysend2, pyclient, sendpermission, pointgrow
@@ -28,16 +23,12 @@ global hostip, pysend, pysend2, pyclient, sendpermission, pointgrow
 #pyclient := ip of pyclient
 #sendpermission := sendpermission for pyclient 
 #pointgrow := list of users who
+#clicked := help variable to avoid creating divs with same id
 hostip = "ws://localhost:9034"
 pointgrow = []
 
-##LISTNODE
-##TODO:Auslagern
-##TODO:in Datei speicher, lesen
-##TODO:immer checken, ob pyclient noch connectet ist, wenn er sendet
 
 ###scrollable list of WordsNodes###
-
 class ListNode(avg.DivNode):
 
     def __init__ (self, idindex, slist, scount, **kwargs):
@@ -49,21 +40,20 @@ class ListNode(avg.DivNode):
             self.slist.append(string)
          
         self.scount = scount
-        
-        self.window = avg.DivNode(id=listwindowid, size=(300, 20), pos =(0,0), parent= self)
+
+        self.window = avg.DivNode(id=listwindowid, size=(300, 20), pos =(0,0), parent= self) #div for listnode
         self.i = 0
-        self.idindex = idindex
+        self.idindex = idindex #idindex < 5000 for requestsongs, >= 5000 for top 7 songs
         self.p = 0 
         self.node = slist
-        for string in slist:
-            
+        for string in slist:    #generates list entries
             self.node[self.i] = avg.WordsNode(id = str(self.idindex), text= str(string), color="FFFFFF", pos=(5,self.p), parent=self.window)
             self.node[self.i].setEventHandler(avg.CURSORDOWN, avg.MOUSE,  self.click)
             self.p = self.p+20
             self.idindex = self.idindex+1
             self.i = self.i +1
-            
-            
+        
+        #makes list scrollable
         self.captureHolder = None
         self.dragOffsetY = 0
         self.dragOffsetX = 0
@@ -85,12 +75,13 @@ class ListNode(avg.DivNode):
         event = self.current_event
         if (event.node.id != self.node_old):
             
+            #colors old node white again
             if self.node_old >= 0:
                 nodeid = rcv.player.getElementByID(str(self.node_old))      
                 nodeid.color = "FFFFFF"
             
+            #"activates" song-buttons
             if (int(event.node.id) < 5000):
-            
                 event.node.color = "F4FA58"
             
                 rcv.rectadd.color="2EFE2E"
@@ -109,17 +100,12 @@ class ListNode(avg.DivNode):
                 rcv.textrej3.color="8A0808"
                 rcv.textblockuser.color="8A0808"
             
-        
         else:
             pass
         
-        
         self.node_old = event.node.id
         
-        
-        
-    #adds a WordsNode
-    
+    #adds a WordsNode   
     def addEle(self, elem):
         i = len(self.slist)
         
@@ -135,7 +121,6 @@ class ListNode(avg.DivNode):
         self.window.size = (avg.Point2D(self.window.size.x, self.window.size.y + 20))
         
     #removes a WordsNode
-                      
     def removEle(self):
         
         #checks if DJ is allowed to remove the WordsNode (if song-handle buttons are not grey)
@@ -276,7 +261,6 @@ class ListNode(avg.DivNode):
                 anim.start()
     
     #avoids that list can disappear completely by scrolling
-    
     def outofDiv(self, event):
         self.captureHolder = None
         if self.window.pos.y >=  self.size.y -20:
@@ -318,7 +302,6 @@ class EchoServerProtocol(WebSocketServerProtocol):
     
     #method called when someone connects        
     def onOpen(self):
-        #TODO: ???
         if self.peer.host == pyclient:
             return 0
         
@@ -337,11 +320,9 @@ class EchoServerProtocol(WebSocketServerProtocol):
                 self.sendMessage("POINTCO"+str(user.numberofpoints))
                 self.sendMessage("SONGDB1"+songdb.tostring())
                 
-                #TODO:deletable?
+                #TODO:NEEDED?
+                #ips.dropConnection(self.peer.host) ##drops Connection out of IPStorage when Client disconnects
                 #ips.addNewClient(self.peer.host, self) ##adds current Connection and Client IP to the Storage
-                #ips.updateAll("New Client with IP "+self.peer.host+" has joined")
-                ips.dropConnection(self.peer.host) ##Drop Connection out of IPStorage when Client disconnects
-                ips.addNewClient(self.peer.host, self) ##adds current Connection and Client IP to the Storage
                 return 0
         
         #adds new client if user doesn't exist
@@ -354,7 +335,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
         if (msg[0:10] == 'PYCLIENT: '):
             msglen = len(msg)
             global pyclient
-            if pyclient == 0: #pyclient final
+            if pyclient == 0: #makes pyclient final
                 pyclient = self.peer.host
             
         #a user tries to connect
@@ -370,7 +351,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
             user = userdb.getUserByName(usern)
             self.sendMessage('SONGDB1'+songdb.tostring()) #sends songdb to user
             
-        ##adds song to requestlist
+        #adds song to requestlist
         if (msg[0:6] == 'SONG: '):
             msglen = len(msg)
             songelems = msg[6:msglen].split('##')
@@ -380,8 +361,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
             testinterpret = interpret.upper()
             testsongtitle = songtitle.upper()
             
-            
-            #checks if song already in songdb or requestlist
+            #checks if song is already in songdb, requestlist or has been rejected already
             for song in songdb.database:
                 interp = song.interpret.upper()
                 songtit = song.songtitle.upper()
@@ -429,9 +409,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
                     else:
                         self.sendMessage('MAXSONG')
                         return 0
-            
-            #print userdb.getUser(interpret,songtitle).username,"schlaegt '",interpret,"/",songtitle,"' vor"
-            
+                        
             #adds requested song to requestlist
             rcv.player.setTimeout(0, lambda : requestlist.addEle(str(len(requestlist.node)+1)+" / "+interpret+" / "+songtitle))
             
@@ -500,8 +478,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
             pysend = pysend[0:len(pysend)-3]
             
 ###DjApp that uses websockets###
-            
-class libAvgAppWithRect (AVGApp):
+class DjApp (AVGApp):
     
     #sends current top7 songs to pyclient every 30seconds
     def sendtopy(self):
@@ -510,9 +487,7 @@ class libAvgAppWithRect (AVGApp):
             self.sendtopy()
         global pysend, pyclient
         x = pyclient
-        #TODO:PYSENDTOGGLE
         ips.getConnectionForIp(x).sendMessage('PYMESG'+pysend)
-        #print "sending to pyclient:",pysend
         time.sleep(30)
         self.sendtopy()
     
@@ -521,18 +496,14 @@ class libAvgAppWithRect (AVGApp):
         thread.start_new_thread(self.countdown,(0,10)) #initializes and starts countdown
         global pyclient,pysend,pysend2
         x = pyclient
-        #TODO:PYSENDTOGGLE
-        #ips.getConnectionForIp(x).sendMessage('PYMESG'+pysend) #sends top7 songs to pyclient
-        #ips.getConnectionForIp(x).sendMessage('PYMESG'+pysend2) #sends top3 users to pyclient
         ips.getConnectionForIp(x).sendMessage("START") #sends start command to pyclient
         rcv.divstart.removeChild(self.textstart)
         rcv.divstart.removeChild(self.rectstart)
         rcv.rootNode.removeChild(self.divstart)
-        #TODO:PYSENDTOGGLE
         thread.start_new_thread(self.sendtopy,()) #starts updating pyclient every 30 seconds
     
     #called when dj blocks a user or presses "top 3 played"
-    #asks dj to confirm his action
+    #asks DJ to confirm his action
     def confirm(self,x):
         global clicked
         if clicked:
@@ -623,22 +594,11 @@ class libAvgAppWithRect (AVGApp):
             push = "SONGBLO"+interpret+" - "+songtitle
             ips.getConnectionForIp(receiver).sendMessage(str(push)) #tells user he was blocked for his suggestion
                 
-    #called when dj clicks "top 3 played"
+    #called when dj clicks "Top 3 gespielt"
     def click2(self,events):
-        if (rcv.rectsongplayed.color=="A4A4A4"): #checks if dj is allowed to call "top 3 played"
+        if (rcv.rectsongplayed.color=="A4A4A4"): #checks if dj is allowed to call "Top 3 gespielt"
                 return 0
             
-#        if songdb.getlen() == 0: #if songdb is empty, do nothing
-#                rcv.rectsongplayed.fillcolor="BDBDBD"
-#                rcv.rectsongplayed.color="A4A4A4"
-#                rcv.textsongplayed.color="424242"
-#                rcv.textsongplayed2.color="424242"
-#                rcv.textsongplayed3.color="424242"
-#                rcv.textsongplayed4.color="424242"
-#                rcv.textsongplayed.text="Top 1"
-#                rcv.textsongplayed2.text="Top 2"
-#                rcv.textsongplayed3.text="Top 3"
-#                return 0
         self.confirm(0) #asks dj to confirm his action
             
     #resets top3 songs, gives points to suggesters            
@@ -661,7 +621,7 @@ class libAvgAppWithRect (AVGApp):
             rcv.textblockuser.opacity=1
 
             global pointgrow
-            for user in pointgrow: #send every user who got points a message with his pointgrowth and total points
+            for user in pointgrow: #sends every user who got points a message with his pointgrowth and total points
                 userobj = userdb.getUserByName(user[2])
                 if (userobj.song1.interpret=="BLO##CKED"): #doesn't send pointgrowth to blocked users
                     continue
@@ -669,7 +629,7 @@ class libAvgAppWithRect (AVGApp):
                 ips.getConnectionForIp(user[0]).sendMessage(push)
                 ips.getConnectionForIp(user[0]).sendMessage('POINTCO'+str(user[3])) #current total points
             
-            #sort users
+            #sorts users
             userdb.database = userdb.mergeSortc()
             
             #updates pysend2
@@ -687,7 +647,7 @@ class libAvgAppWithRect (AVGApp):
             #updates topseven list on dj screen
             topseven.update(songdb.tolist(),5000)
             
-            #update pysend
+            #updates pysend
             x = songdb.tolist()
             global pysend
             pysend = ""
@@ -702,16 +662,14 @@ class libAvgAppWithRect (AVGApp):
             #updates pyclient with top7 songs and top3 users
             global pyclient
             x = pyclient
-            #TODO:uncomment to send to pyclient, PLAYED
-            #TODO:PYSENDTOGGLE
             ips.getConnectionForIp(x).sendMessage("PLAYED"+pysend)
             ips.getConnectionForIp(x).sendMessage('PYMESG'+pysend2)
         
-            #allow sendpermission again
+            #allows sendpermission again
             global sendpermission
             sendpermission = True
             
-            #send new songdb to all users
+            #sends new songdb to all users
             for user in userdb:
                 ips.getConnectionForIp(user.userip).sendMessage('SONGDB1'+songdb.tostring());
             
@@ -771,10 +729,10 @@ class libAvgAppWithRect (AVGApp):
                 
                 #if top7 changed    
                 if (songdb.checktopseven(topsevenold)):
-                    topseven.update(songdb.tolist(),5000) #update top7 songs on dj screen
+                    topseven.update(songdb.tolist(),5000) #updates top7 songs on dj screen
                     x = songdb.tolist()
                     
-                    #update pysend
+                    #updates pysend
                     global pysend
                     pysend = ""
                     for y in x:
@@ -787,10 +745,10 @@ class libAvgAppWithRect (AVGApp):
                     pysend = pysend[0:len(pysend)-3]
                                 
                 push = "SONGADD"+interpret+" - "+songtitle
-                if not(user == 0): #if user isn't block, tell him his song has been added
+                if not(user == 0): #if user isn't blocked, tell him his song has been added
                     ips.getConnectionForIp(receiver).sendMessage(str(push))
                     
-                #send new songdb to all users            
+                #sends new songdb to all users            
                 for user in userdb:
                     ips.getConnectionForIp(user.userip).sendMessage('SONGDB1'+songdb.tostring());
             
@@ -817,8 +775,8 @@ class libAvgAppWithRect (AVGApp):
                             ips.getConnectionForIp(userrej.userip).sendMessage('ACTSUGG1')
     
                     push = "SONGRE1"+interpret+" - "+songtitle
-                    ips.getConnectionForIp(receiver).sendMessage(str(push)) #tell user his song has been rejected because it already is in songdb
-                rejdb.addSong(interpret,songtitle,0,-1) #add song to rejected songs
+                    ips.getConnectionForIp(receiver).sendMessage(str(push)) #tells user his song has been rejected because it already is in songdb
+                rejdb.addSong(interpret,songtitle,0,-1) #adds song to rejected songs
                 
             #if dj clicked on "Ablehnen - hab' ich nicht"
             elif eventid == "rej2":
@@ -826,7 +784,7 @@ class libAvgAppWithRect (AVGApp):
                 usersong = text.split(' / ')
                 userrej = userdb.getUser(usersong[1],usersong[2])
                 
-                if not(userrej == 0): #if user isn't blocked, reset one suggestion
+                if not(userrej == 0): #if user isn't blocked, resets one suggestion
                     if userrej.song1.interpret == usersong[1] and userrej.song1.songtitle == usersong[2] and userrej.song1.status == 0:
                         userrej.song1.interpret = 'LE##ER'
                         userrej.song1.songtitle = 'LE##ER'
@@ -843,8 +801,8 @@ class libAvgAppWithRect (AVGApp):
                             ips.getConnectionForIp(userrej.userip).sendMessage('ACTSUGG1')
                     
                     push = "SONGRE2"+interpret+" - "+songtitle
-                    ips.getConnectionForIp(receiver).sendMessage(str(push)) #tell user his song has been rejected, because dj doesn't have it
-                rejdb.addSong(interpret,songtitle,0,-1) #add song to rejected songs
+                    ips.getConnectionForIp(receiver).sendMessage(str(push)) #tells user his song has been rejected, because dj doesn't have it
+                rejdb.addSong(interpret,songtitle,0,-1) #adds song to rejected songs
             
             #if dj clicked on "Ablehnen - passt nicht"
             elif eventid == "rej3":
@@ -852,7 +810,7 @@ class libAvgAppWithRect (AVGApp):
                 usersong = text.split(' / ')
                 userrej = userdb.getUser(usersong[1],usersong[2])
                 
-                if not(user==0): #if user isn't blocked, reset one suggestion
+                if not(user==0): #if user isn't blocked, resets one suggestion
                     if userrej.song1.interpret == usersong[1] and userrej.song1.songtitle == usersong[2] and userrej.song1.status == 0:
                         userrej.song1.interpret = 'LE##ER'
                         userrej.song1.songtitle = 'LE##ER'
@@ -869,7 +827,7 @@ class libAvgAppWithRect (AVGApp):
                             ips.getConnectionForIp(userrej.userip).sendMessage('ACTSUGG1')
                 
                     push = "SONGRE3"+interpret+" - "+songtitle
-                    ips.getConnectionForIp(receiver).sendMessage(str(push)) #tell user his song has been rejected, because dj thinks it doesn't match the theme of the evening
+                    ips.getConnectionForIp(receiver).sendMessage(str(push)) #tells user his song has been rejected, because dj thinks it doesn't match the theme of the evening
                 
                 rejdb.addSong(interpret,songtitle,0, -1) #adds song to rejected songs
     
@@ -907,7 +865,7 @@ class libAvgAppWithRect (AVGApp):
         self.textrej3 = avg.WordsNode(pos=(10,5),parent=self.divrej3,color="424242",text="Ablehnen - passt nicht")
         self.textblockuser = avg.WordsNode(pos=(10,5),parent=self.divblockuser,color="424242",text="User blockieren")
 
-        #button "top 3 played"
+        #button "Top 3 gespielt"
         self.divsongplayed = avg.DivNode(id = "songplayed",pos=(340,160),size=(250,120),parent=self.rootNode)
         self.rectsongplayed = avg.RectNode(size=(250,120),pos=(0,0),parent=self.divsongplayed,color="A4A4A4",fillcolor="BDBDBD", fillopacity=1)
         self.textsongplayed =avg.WordsNode(pos=(10,5),parent=self.divsongplayed,color="424242",text="Top 1")
@@ -918,7 +876,6 @@ class libAvgAppWithRect (AVGApp):
         
         #timer
         self.timer=avg.WordsNode (pos=(414,290), color="FFFFFF", font="arial", variant="Bold", text="60:00", fontsize=40, parent=self.rootNode)
-        
         
         #start button
         self.divstart = avg.DivNode(id = "start",pos=(340,160),size=(250,120),parent=self.rootNode)
@@ -931,16 +888,14 @@ class libAvgAppWithRect (AVGApp):
         
         #starts the websocket in new thread
         thread.start_new_thread(self.initializeWebSocket, ())
-                      
-        #log.startLogging(sys.stdout)##Create a logfile (not necessary)
-         
-    #starts websocket       
+                               
+    #starts websocket      
     def initializeWebSocket(self):
         self.factory = WebSocketServerFactory(hostip, debug = False)
-        self.factory.protocol = EchoServerProtocol ##assign protocol to send/receive messages
+        self.factory.protocol = EchoServerProtocol #assign protocol to send/receive messages
         listenWS(self.factory)
         
-        reactor.run(installSignalHandlers=0)##"installSignalHandlers=0" Necessary for Multithreading
+        reactor.run(installSignalHandlers=0)#"installSignalHandlers=0" necessary for multithreading
     
     #creates countdown with m minutes, s seconds
     def countdown(self,m,s):
@@ -961,16 +916,11 @@ class libAvgAppWithRect (AVGApp):
             if int(mint) == 0 and int(sect) == 30:
                 global sendpermission
                 sendpermission = False
-                
             
             if int(mint) == 0 and int(sect) == 0:
-                #no sendpermission until top3 played
-                #TODO: pyclient send top3
-                
                 global pysend,pysend2, pyclient
                 x = pyclient
-                #TODO:PYSENDTOGGLE
-                ips.getConnectionForIp(x).sendMessage('FINAL'+pysend)
+                ips.getConnectionForIp(x).sendMessage('FINAL'+pysend) #sends songdb again
         
                 rcv.rectsongplayed.fillcolor="FE2E2E"
                 rcv.rectsongplayed.color="FF0000"
@@ -981,11 +931,11 @@ class libAvgAppWithRect (AVGApp):
                 
                 top3 = []   #top3 songs
                 i = 0
-                if songdb.getlen() < 3: #check if top3 possible (3 songs in songdb)
+                if songdb.getlen() < 3: #checks if top3 possible (3 songs in songdb)
                     k = songdb.getlen()
                 else:
                     k = 3
-                while i < k:    #add songs to top3
+                while i < k:    #adds songs to top3
                     songele = []
                     interpret = songdb[i].interpret
                     songtitle = songdb[i].songtitle
@@ -1015,7 +965,7 @@ class libAvgAppWithRect (AVGApp):
                 i = 0
                 global pointgrow
                 pointgrow = []
-                while i < k:    #iterate over top k songs (k <= 3)
+                while i < k:    #iterates over top k songs (k <= 3)
                 #resets song
                     songdb.database.remove(songdb[0])
                     songdb.addSong(top3[i][0],top3[i][1],0,top3[i][3])
@@ -1023,7 +973,7 @@ class libAvgAppWithRect (AVGApp):
                 
                     for user in userdb:
                         c = 0
-                        if top3[i][3] == -1: #check if fromuser == -1 (means user who suggested this has been blocked)
+                        if top3[i][3] == -1: #checks if fromuser == -1 (means user who suggested this has been blocked)
                             pass
                         else:
                             if top3[i][3] == user.userid:
@@ -1032,29 +982,29 @@ class libAvgAppWithRect (AVGApp):
                                 z = True
                                 for x in pointgrow:
                                     if x[0] == user.userip and x[2] == user.username:   #checks if user already in pointgrow
-                                        x[1] += c   #add points to pointgrowth
-                                        x[3] += c   #add points to userpoints
+                                        x[1] += c   #adds points to pointgrowth
+                                        x[3] += c   #adds points to userpoints
                                         z = False
                     
-                                if z:       #if user not already in pointgrowth, append him
+                                if z:       #if user not already in pointgrowth, appends him
                                     pointgrow.append([user.userip,c,user.username,user.numberofpoints])
                         
                         while True:
                             z = True
                             if top3[i][4] in user.votedfor: #if user voted for song
-                                user.votedfor.remove(top3[i][4])    #remove song element once from votedfor
-                                user.numberofpoints += 10   #add 10 points to userpoints
+                                user.votedfor.remove(top3[i][4])    #removes song element once from votedfor
+                                user.numberofpoints += 10   #adds 10 points to userpoints
                                 for x in pointgrow:
-                                    if x[0] == user.userip and x[2] == user.username: #check if user already in pointgrow
-                                        x[1] += 10  #add 10 points to pointgrowth
-                                        x[3] += 10  #add 10 points to userpoints
+                                    if x[0] == user.userip and x[2] == user.username: #checks if user already in pointgrow
+                                        x[1] += 10  #adds 10 points to pointgrowth
+                                        x[3] += 10  #adds 10 points to userpoints
                                         z = False
-                                if z:    #check if user not already in pointgrow
+                                if z:    #checks if user not already in pointgrow
                                     pointgrow.append([user.userip,10,user.username,user.numberofpoints])
                             else:
                                 break
-                    i+=1    #add 1 for looping
-                userdb.database = userdb.mergeSortc()
+                    i+=1    #adds 1 for looping
+                userdb.database = userdb.mergeSortc() #sorts userdb
             
                 print "Der Countdown ist abgelaufen.\nSpiele nun bitte die Top 3 Crowd-Songs.\nDanach bestaetige, dass du die Songs gespielt hast."
                 print "Nach der Bestaetigung werden die Top 3 User aktualisiert wie folgt:"
@@ -1094,6 +1044,7 @@ class libAvgAppWithRect (AVGApp):
             if seconds ==-1: #resets timer at 0:00
                 seconds = 119
     
+    #sends songdb to all users
     def toallusers(self):
         time.sleep(2)
         for user in userdb:
@@ -1102,7 +1053,7 @@ class libAvgAppWithRect (AVGApp):
         
     #console input for dj
     def input(self):
-        while True: #always accept input
+        while True: #always accepts input
             x = raw_input()
             
             #prints console guide for dj
@@ -1121,92 +1072,6 @@ class libAvgAppWithRect (AVGApp):
                 print "Ist Dein Countdown abgelaufen, so werden die Top 3 Lieder auf dem 'Start'-Button antezeigt und Du bist gebeten, diese Lieder zu spielen."
                 print "- 'Top 3 gespielt': bestaetige, dass Du die Top 3 gespielt hast."
             
-            #debughelp for developers
-            if x[:9] == "debughelp":
-                print "songdb - Gibt Song-Datenbank aus.\nadds - Fuegt Song hinzu.\nvote - Votet fuer einen Song.\nuserdb - Gibt User-Datenbank aus.\naddu - Fuegt User hinzu.\npoints - Gibt Punkte an User.\npysend - Printet pysend\npysend2 - Printet pysend2"
-            
-            #fakes a vote
-            if x[:4] == "vote":
-                print "Fuer welches Lied moechtest du voten?"
-                print "Interpret eingeben."
-                interpret = raw_input()
-                print "Songtitel eingeben."
-                songtitle = raw_input()
-                songdblen = songdb.getlen()
-                for i in range(0,songdblen):
-                    if (songtitle == songdb[i].songtitle and interpret == songdb[i].interpret):
-                        songdb[i].numberofvotes += 1
-                        j = i-1
-                        k = i
-                        while j>=0: ##sorts songarray!
-                            if (songdb[k].numberofvotes <= songdb[j].numberofvotes):
-                                break
-                            songdb[j].interpret,songdb[k].interpret = songdb[k].interpret,songdb[j].interpret
-                            songdb[j].songtitle,songdb[k].songtitle = songdb[k].songtitle,songdb[j].songtitle
-                            songdb[j].numberofvotes,songdb[k].numberofvotes = songdb[k].numberofvotes,songdb[j].numberofvotes
-                            songdb[j].fromuser,songdb[k].fromuser = songdb[k].fromuser,songdb[j].fromuser
-                        
-                            j -= 1
-                            k -= 1
-                        break;
-                print "Fuer "+interpret+" - "+songtitle +" gevotet."
-                
-                x = songdb.tolist()
-                global pysend
-                pysend = ""
-                for y in x:
-                    a = y.split(' / ')
-                    if len(a)==1:
-                        pysend+=' ## ##0!#!'
-                    else:
-                        pysend += (a[0])[3:len(a[0])]+'##'+(a[1])+'##'+(a[2])[2:len(a[2])]+'!#!'        
-                pysend = pysend[0:len(pysend)-3]
-                
-            #fakes user addition
-            if x[:4] == "addu":
-                print "Welchen User moechtest du hinzufuegen?"
-                print "Name eingeben."
-                user = raw_input()
-                userdb.addUser(userdb.getlen(),"127.0.0.1",user,0,3)
-                print "User "+user+" hinzugefuegt."
-                
-            #grants given user points
-            if x[:6] == "points":
-                print "Wem moechtest du Punkte geben?"
-                print "Name eingeben."
-                usern = raw_input()
-                print "Punktzahl eingeben."
-                points = raw_input()
-                check = True
-                for user in userdb:
-                    if user.username == usern:
-                        user.numberofpoints += int(points)
-                        print "User "+usern +" hat "+points+" Punkte erhalten."
-                        check = False
-                if check:
-                    print "User nicht gefunden."
-            
-            #fakes song addition
-            if x[:4] == "adds":
-                print "Welches Lied moechtest du hinzufuegen?"
-                print "Interpret eingeben."
-                interpret = raw_input()
-                print "Songtitel eingeben."
-                songtitle = raw_input()
-                songdb.addSong(interpret,songtitle,0,-1)
-                print interpret+" - "+songtitle+" hinzugefuegt."
-                
-                x = songdb.tolist()
-                pysend = ""
-                for y in x:
-                    a = y.split(' / ')
-                    if len(a)==1:
-                        pysend+=' ## ##0!#!'
-                    else:
-                        pysend += (a[0])[3:len(a[0])]+'##'+(a[1])+'##'+(a[2])[2:len(a[2])]+'!#!'        
-                pysend = pysend[0:len(pysend)-3]
-            
-            
             #prints songdb
             if x[:6] == "songdb":
                 songdblen = songdb.getlen()
@@ -1222,8 +1087,7 @@ class libAvgAppWithRect (AVGApp):
                     print "Die Nutzer-Datenbank ist momentan noch leer."
                 for i in range(0,userdblen):
                     print "User: "+userdb[i].username+", Punkte: "+str(userdb[i].numberofpoints)
-            
-                
+                            
             #blocks user followed after whitespace
             if x[:5] == "block":
                 usertoblock = userdb.getUserByName(x[6:])
@@ -1255,14 +1119,6 @@ class libAvgAppWithRect (AVGApp):
                         i+=1
                     pysend2 = pysend2[0:len(pysend2)-3]
                     
-            #prints pysend
-            if x[:6] == "pysend":
-                print pysend
-            
-            #prints pysend2
-            if x[:7] == "pysend2":
-                print pysend2
-            
             #allows dj to change a song in requestlist (to correct writing mistakes)
             if x[:6] == "change":
                 y = int(x[7:]) #dj inputs 'change ' plus the number of the song in requestlist he wants to change
@@ -1270,13 +1126,13 @@ class libAvgAppWithRect (AVGApp):
                     print "Songindex existiert nicht."
                     continue
                 data = requestlist.node[y-1].text.split(' / ')
-                print "Bearbeite Song:",data[1],"/",data[2] #tell dj which song he is editing
+                print "Bearbeite Song:",data[1],"/",data[2] #tells dj which song he is editing
                 print "Interpret", data[1],"aendern zu:" #asks dj for new interpret
                 interpret = raw_input()
                 print "Songtitle", data[2],"aendern zu:" #asks dj for new songtitle
                 songtitle = raw_input()
                 
-                #adjust user's song
+                #adjusts user's song
                 user = userdb.getUser(data[1],data[2])
                 if user.song1.interpret == data[1] and user.song1.songtitle == data[2]:
                     songnumber = 1
@@ -1289,14 +1145,14 @@ class libAvgAppWithRect (AVGApp):
                     user.song2.interpret = interpret
                     user.song2.songtitle = songtitle
                 
-                #update requestlist
+                #updates requestlist
                 requestlist.node[y-1].text = str(y)+" / "+interpret+" / "+songtitle
                 requestlist.slist[y-1] = str(y)+" / "+interpret+" / "+songtitle
                 print "Aenderte",data[1],"/",data[2],"zu",interpret,"/",songtitle
                          
 if __name__ == '__main__':
     
-    rcv=libAvgAppWithRect()
+    rcv=DjApp()
     ips=IPStorage()
     songdb = databases.SongDatabase()
     userdb = databases.UserDatabase()
