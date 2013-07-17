@@ -1,0 +1,335 @@
+<!DOCTYPE HTML>
+
+<head>
+	<meta charset="utf-8"/>
+	<meta author="Gruppe 1"/>
+	<title>DjCrowd</title>
+	
+	<link rel="stylesheet" href="css/jquery.mobile-1.2.1.min.css" />
+	<script src="js/jquery-1.8.3.min.js"></script>
+	<script src="js/jquery.mobile-1.2.1.min.js"></script>
+	<script type="text/javascript" src="js/utility.js"></script>
+	<link href="css/style.css" type="text/css" rel="stylesheet">
+	<script src="phonegap-websocket.js"></script>
+    <script type="text/javascript" charset="utf-8" src="cordova-2.7.0.js"></script>
+	<meta name="viewpoint" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+	
+	<script type="text/javascript" charset="utf-8">
+		var sock = null;
+		var connected = false;
+		
+		//Initalisiert das Websocket mit eingegebener IP
+		function connecttoserver() {
+			var x = document.getElementById('Eingabeip').value;
+			var wsuri = "ws://"+x+":9034";
+			sock = new WebSocket(wsuri);
+			
+			//Lädt indexuser, wenn socket sich erfolgreich verbunden hat
+			sock.onopen = function() {
+				console.log("connected to " + wsuri);
+				connected = true;
+			$("#content").load("indexuser.html", function(){
+				$('#content').appendTo('.ui-page').trigger('create');	
+			});
+			}
+
+			//Lädt die Seite neu, wenn socket sich nicht verbunden konnte
+			sock.onclose = function(e) {
+				console.log("connection closed (" + e.code + ")");
+				connected = false;
+				alert("Die Verbindung zum Server ist verloren gegangen.");
+				connectedTimeout();
+			}
+			
+			//reagiert auf Narichten des Servers und führt die entsprechenden Funktionen aus
+			sock.onmessage = function(e) {
+				console.log("message received: " + e.data);
+				prefix = e.data.substr(0, 7);
+				data = e.data.substring(7, e.data.length);
+				//sdata für songdb data
+				if(data.split("##").length > 1){
+					sdata = data;
+				}
+				switch (prefix) {
+					case "NAMUSED":
+						alert("Nutzername bereits vergeben!");
+						usernameinput.value = "";
+						connected = true;
+						break;
+					case "NAMFREE":
+						loadhome();
+						connected = true;
+						break;
+					case "SONGIND":
+						alert("Dein Vorschlag\n" + data + "\nist bereits\nin der Crowdlist!");
+						break;
+					case "SONGINP":
+						alert("Dein Vorschlag\n"+data+"\nwird vom DJ verarbeitet.");
+						break;
+					case "SONGINR":
+						alert("Dein Vorschlag\n"+data+"\nwurde bereits abgelehnt.");
+						break;
+					case "MAXSONG":
+						alert("Du hast bereits\nzwei Lieder vorgeschlagen.");
+						break;
+					case "MAXVOTE":
+						alert("Du hast momentan\nkeine Votes mehr.\nIn " + data + " erhälst du drei neue Votes");
+						break;
+					case "SONGADD":
+						alert("Glückwunsch!\nDein Vorschlag\n" + data + "\nwurde angenommen.");
+						break;
+					case "SONGRE1":
+						alert("Dein Vorschlag\n" + data + "\nist bereits\nin der Crowdlist!");
+						break;
+					case "SONGRE2":
+						alert("Sorry!\nDer DJ hat deinen Vorschlag\n" + data + "\nleider nicht.");
+						break;
+					case "SONGRE3":
+						alert("Sorry!\nDein Vorschlag\n" + data + "\npasst heute leider nicht.");
+						break;
+					case "SONGBLO":
+						alert("Du wurdest wegen deinem Vorschlag\n" + data + "\ngesperrt!");
+						document.getElementById('suggests').src="images/suggests0.png";
+						break;
+					case "USERBLC":
+						alert("Du wurdest vom DJ gesperrt!");
+						document.getElementById('suggests').src="images/suggests0.png";
+						break;
+					case "POINTGR":
+						if (data!="0"){
+						alert("Yeah!\nDu hast "+data+" Punkte erhalten!");
+						}
+						break;
+					case "USEREXI":
+						loadhome();
+						document.getElementById('headeruser').innerHTML = data;
+						break;
+					case "ACTSUGG":
+						switch(data){
+							case "2":
+								document.getElementById('suggests').src="images/suggests2.png";
+								break;
+							case "1":
+								document.getElementById('suggests').src="images/suggests1.png";
+								break;
+							case "0":
+								document.getElementById('suggests').src="images/suggests0.png";
+								break;
+							default:
+								break;
+						}
+						break;
+					case "POINTCO":
+						if (data[0] == "-"){
+							document.getElementById('single').src="images/number0.png";
+							document.getElementById('double').src="images/number0.png";
+							document.getElementById('triple').src="images/number0.png";
+							document.getElementById('quadriple').src="images/number0.png";	
+						}
+						else{
+						switch(data.length){
+							case 1:
+								document.getElementById('single').src="images/number"+data+".png";
+								document.getElementById('double').src="images/number0.png";
+								document.getElementById('triple').src="images/number0.png";
+								document.getElementById('quadriple').src="images/number0.png";
+								break;
+							case 2:
+								document.getElementById('single').src="images/number"+data[1]+".png";
+								document.getElementById('double').src="images/number"+data[0]+".png";
+								document.getElementById('triple').src="images/number0.png";
+								document.getElementById('quadriple').src="images/number0.png";
+								break;
+							case 3:
+								document.getElementById('single').src="images/number"+data[2]+".png";
+								document.getElementById('double').src="images/number"+data[1]+".png";
+								document.getElementById('triple').src="images/number"+data[0]+".png";
+								document.getElementById('quadriple').src="images/number0.png";
+								break;
+							case 4:
+								document.getElementById('single').src="images/number"+data[3]+".png";
+								document.getElementById('double').src="images/number"+data[2]+".png";
+								document.getElementById('triple').src="images/number"+data[1]+".png";
+								document.getElementById('quadriple').src="images/number"+data[0]+".png";
+								break;
+							default:
+								document.getElementById('single').src="images/number9.png";
+								document.getElementById('double').src="images/number9.png";
+								document.getElementById('triple').src="images/number9.png";
+								document.getElementById('quadriple').src="images/number9.png";
+								break;
+							}
+						}
+						break;
+					case "ACTVOTE":
+						switch(data){
+							case "3":
+								document.getElementById('votes').src="images/votes3.png";
+								break;
+							case "2":
+								document.getElementById('votes').src="images/votes2.png";
+								break;
+							case "1":
+								document.getElementById('votes').src="images/votes1.png";
+								break;
+							case "0":
+								document.getElementById('votes').src="images/votes0.png";
+								break;
+							default:
+								break;
+						}
+						break;
+					case "ACTVOT3":
+						alert("Du hast jetzt wieder 3 Votes zu verfügung.");
+						document.getElementById('votes').src="images/votes3.png";
+						break;
+					case "SONGDB1":
+						if (document.getElementById('headeruser').innerHTML == 'DjCrowd')
+							break; 
+						$("#content").load("home.html", function(){
+						var nichtleer = sdata;
+						splitdata = sdata.split('!#!');
+						clear_list('songlist');
+						add_li('songlist', '<data-role="list-divider" role="heading"> Crowdlist');
+						lexdata = lexsort(splitdata);
+						if (nichtleer){
+							load_list('songlist',lexdata);
+						}
+						$('#content').appendTo('.ui-page').trigger('create');	
+						});
+						connected = true;
+						break;
+					default:
+						break;
+				}
+			}
+		};
+		
+		//sortiert songdb lexikalisch
+		function lexsort(array){						
+			lexarray = []
+			for (var q = 0; q < array.length; q++){
+				if (lexarray.length == 0){
+					lexarray.push(array[q]);
+					continue;
+				}
+				for(var i = 0; i < lexarray.length; i++){
+					
+					newarray = []
+					a = lexarray[i].split("##");
+					b = array[q].split("##");
+					if (stringcompare(a[0],b[0]),a[1],b[1]){
+						newarray.push(array[q]);
+						for(var j = i; j < lexarray.length; j++){
+							newarray.push(lexarray[j]);
+						}
+					}
+					else{
+					newarray.push(lexarray[i]);
+					}
+					lexarray = [];
+					for (var p = 0; p < newarray.length; p++){
+						lexarray.push(newarray[p]);
+					}
+				}
+			}
+			return lexarray;
+		}
+		
+		function stringcompare(a,b,as,bs){
+			if (a == b){
+				return (bs < as);
+			}
+			return (b < a);
+		}
+		
+		function isconnected(){
+			window.setInterval("connectedTimeout()", 30000);
+		}
+
+		//lädt die Seite neu, falls socket nicht verbunden ist
+		function connectedTimeout(){	
+			if (connected == false){
+				window.location.href="index.html";
+			}
+
+		}
+		
+		//lädt beim wechseln der Seite die Initalen Werte für die Votes, Punkte und Vorschläge
+		function loadhome(){
+			document.getElementById('votes').src="images/votes3.png";
+			document.getElementById('suggests').src="images/suggests2.png";
+			document.getElementById('points').src="images/punkte.png";
+			document.getElementById('single').src="images/number0.png";
+			document.getElementById('double').src="images/number0.png";
+			document.getElementById('triple').src="images/number0.png";
+			document.getElementById('quadriple').src="images/number0.png";
+			}
+			
+		//Sendet den Usernamen und prüft, ob der User einen Usernamen gesetzt hat
+		function senduser(username) {
+			document.getElementById('headeruser').innerHTML = username;
+			if (connected == false){
+					alert("Es konnte keine Verbindung zum Server hergestellt werden.");
+					window.setInterval("connectedTimeout()", 2000);
+					return 0;
+				}
+			
+			if (username == "") {
+				alert("Bitte einen Nutzernamen eingeben.");
+			} else {
+				sock.send('USERNAME: ' + username);
+			}
+
+		}		
+	</script>
+</head>
+
+<body id="body2">
+	<div id="headff">
+	<header>
+			<div data-theme="a" data-role="header" id="header">
+				<h3 id="headeruser"> DjCrowd </h3>
+			</div>
+	</header>
+	</div>
+	
+	<div id="body">
+	<div id="index">
+		<!-- erstellt den Header am Anfang-->
+		
+		<!-- die Texte für Votes, Punkte und Suggestions. Am Anfang sind sie unsichtbar-->
+		<img src="" id="votes">
+		<img src="" id="suggests">
+		<img src="" id="points">
+		<img src="" id="quadriple">
+		<img src="" id="triple">
+		<img src="" id="double">
+		<img src="" id="single">
+		
+		<!--<h3 id="suggestionablesongs" style="float:left">  </h3>
+
+		<h3 id="votecounter" style="float:left"></h3>
+
+		<h3 id="points" ></h3>-->
+		<!-- Html Teil, der den Nutzer begrüßt und das Eingabefeld erstellt-->
+		<div id="content">
+			<h2> Willkommen bei
+			<br>
+			DjCrowd </h2>
+			
+			<div id ="Eingabe2">
+				<h3> Bitte IP eingeben:</h3>
+				<input name="" id="Eingabeip" placeholder=""
+				value="" type="text">
+			</div>
+			
+			<div id="Button2">
+				
+			<input id="ServerButton" value="Connecten" type="submit" onclick="connecttoserver()" data-theme="e">
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>
