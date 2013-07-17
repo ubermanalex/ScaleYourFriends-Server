@@ -123,7 +123,7 @@ class ListNode(avg.DivNode):
     #removes a WordsNode
     def removEle(self):
         
-        #checks if DJ is allowed to remove the WordsNode (if song-handle buttons are not grey)
+        #checks if dj is allowed to remove the WordsNode (if song-handle buttons are not grey)
         if (rcv.rectadd.color=="A4A4A4"):
             return 0
         
@@ -461,7 +461,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
             for user in userdb:
                 ips.getConnectionForIp(user.userip).sendMessage('SONGDB1'+songdb.tostring());
              
-            #updates top7 list on DJ's screen
+            #updates top7 list on dj's screen
             topseven.update(songdb.tolist(),5000)
             
             #updates pysend
@@ -503,7 +503,7 @@ class DjApp (AVGApp):
         thread.start_new_thread(self.sendtopy,()) #starts updating pyclient every 30 seconds
     
     #called when dj blocks a user or presses "top 3 played"
-    #asks DJ to confirm his action
+    #asks dj to confirm his action
     def confirm(self,x):
         global clicked
         if clicked:
