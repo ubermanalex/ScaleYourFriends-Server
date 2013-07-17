@@ -3,8 +3,8 @@ Created on 10 Jun 2013
 
 @author: Alex
 '''
-##USERDATABASE
 
+###Userdatabase###
 class UserDatabase(object):
 
     def __init__(self):
@@ -21,6 +21,7 @@ class UserDatabase(object):
         user = User(userid, userip, username, SuggestedSong("LE##ER","LE##ER"), SuggestedSong("LE##ER","LE##ER"),numberofpoints, numberofvotes,[])
         self.database.append(user)
         
+    #gets user by interpret and songtitle
     def getUser(self, interpret, songtitle):
         for user in self.database:
             if user.song1.songtitle == songtitle and user.song1.interpret == interpret:
@@ -29,12 +30,14 @@ class UserDatabase(object):
                 return user
         return 0
     
+    #gets user by username
     def getUserByName(self,name):
         for user in self.database:
             if user.username == name:
                 return user
         return 0
-            
+    
+    #sorts userdb
     def mergeSortc(self):
         x = self.mergeSort(self.database)
         return x
@@ -61,7 +64,7 @@ class UserDatabase(object):
             result.extend(self.mergeSort(right))
         return result
     
-        
+###User###
 class User(object):
     def __init__(self, userid, userip, username, song1, song2, numberofpoints, numberofvotes, votedfor):
         self.userid = userid
@@ -79,8 +82,7 @@ class SuggestedSong(object):
         self.songtitle = songtitle
         self.status = 0
 
-##SONGDATABASE
-
+###Songdatabase###
 class SongDatabase(object):
 
     def __init__(self):
@@ -100,6 +102,7 @@ class SongDatabase(object):
         if len(self.topseven) < 7:
             self.topseven.append(song)
     
+    #checks if topseven has changed
     def checktopseven (self,oldtopseven):
         if len(oldtopseven) != len(self.topseven):
             return True
@@ -109,6 +112,7 @@ class SongDatabase(object):
                     return True              
         return False
     
+    #parses top7 songs to a stringlist
     def tolist (self):
         strlist = []
         i = 0
@@ -121,6 +125,7 @@ class SongDatabase(object):
                 i+=1
         return strlist
     
+    #parses songdb to a string
     def tostring (self):
         tostring = ""
         i = 0
@@ -129,12 +134,13 @@ class SongDatabase(object):
             i += 1
         return tostring[:-3]
     
+    #gets user by interpret and songtitle
     def getUser(self, interpret, songtitle):
         for song in self.database:
             if song.songtitle == songtitle and song.interpret == interpret:
                 return song.fromuser
             
-
+###Song###
 class Song(object):
     def __init__(self, interpret, songtitle, numberofvotes, fromuser):
         self.interpret = interpret
