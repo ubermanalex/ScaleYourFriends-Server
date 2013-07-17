@@ -23,7 +23,6 @@
 	song = document.getElementById('headeruser').innerHTML+'##'+interpret+'##'+songtitle;
 	
 	send('SONG: '+interpret+'##'+songtitle+'##'+document.getElementById('headeruser').innerHTML);
-	//insertItem('songlist',1,'<li data-theme="c" onclick="vote('+song+')">'+interpret+" - "+songtitle+'</li>');
 	}
 	//Hängt ein neues Element an die Liste an 
 	function add_li(list, text) {
@@ -31,14 +30,14 @@
 		var li = document.createElement("li");
 		var a = text.split('!#!');
 		if (a[1] && a[2]){
+		//formatiert die Anzeige der Songs in der Songliste
 		li.innerHTML = a[0] +" - "+ a[1] + '<span class="ui-li-count">'+ a[2]+ '</span>' ;
-		 //<span class="ui-li-count">
-                      //  jdfe
-                    //</span>
         a[0] = a[0].split(">")[1];
         li.onclick=function(){
+			//fragt ab, ob man wirklich voten möchte
         	var answear = confirm("Für  '" +a[0]+" - "+a[1]+ "'  voten?");
 		if (answear){
+			//wenn ja, wird der Song an den Server gesendet 
 			sock.send('VOTE: '+document.getElementById('headeruser').innerHTML+'##'+a[0]+'##'+a[1]);}
 			
         }
@@ -50,7 +49,6 @@
 	}
 	//lädt die liste neu
 	function load_list(list, list_array) {
-		//add_li(list, "<data-role="list-divider" role="heading"> Crowdlist>")
 		for (var i = 0; i < list_array.length; i++) {
 			xxx = list_array[i].split('##');
 			x = document.getElementById('headeruser').innerHTML+'##'+xxx[0]+'##'+xxx[1];
@@ -73,15 +71,6 @@
 	ul.insertBefore(li, ul.getElementsByTagName("li")[position]);
 	}
 	
-	//Fragt ab, ob man wirklich für den Song voten will und schickt(wenn ja) dies an den Server
-	function vote(){
-		alert("Hallo.");
-		/*var neuersong = song.split('##');
-		var answear = confirm("Für  '" +neuersong[1]+" - "+neuersong[2]+ "'  voten?");
-		if (answear){
-			sock.send('VOTE: '+song);}*/
-		
-	}
 </script>
 <!-- Button um einen Song hinzuzufügen-->
 <input value="Song vorschlagen" type="submit" data-role="button" onclick="addsong()" data-theme="e">
